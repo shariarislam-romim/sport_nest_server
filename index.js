@@ -1,15 +1,20 @@
 const express = require('express');
 const dotenv = require('dotenv');
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
-const cors = require('cors')
+const cors = require('cors');
+const { createRemoteJWKSet, jwtVerify } = require('jose-cjs');
 dotenv.config();
 const app = express();
 app.use(cors());
 const port = 5000
 
+const uri = process.env.MONGODB_URI;
 
-const uri = "mongodb+srv://sport_nest:ymFdBh7RHHFdGvM4@cluster0.lt4h3no.mongodb.net/?appName=Cluster0";
-// Create a MongoClient with a MongoClientOptions object to set the Stable API version
+const JWKS = createRemoteJWKSet(
+    new URL(`${process.env.CLIENT_URL}/api/auth/jwks`)
+);
+// console.log(JWKS, 'from jwks')
+
 const client = new MongoClient(uri, {
   serverApi: {
     version: ServerApiVersion.v1,
@@ -17,6 +22,38 @@ const client = new MongoClient(uri, {
     deprecationErrors: true,
   }
 });
+
+const logger = (req, res, next)=>{
+    console.log(req.params, 'logger');
+    next();
+ };
+
+const verifyToken = async (req, res, next)=>{
+    const {authorization} = req.headers;
+    console.log(req.headers, 'verify token')
+    const token = authorization?.split(' ')[1];
+    // console.log(token);
+
+    if(!token){
+        return res.status(401).json({message: "Unauthorize"});
+    }
+    try {
+    const JWKS = createRemoteJWKSet(
+      new URL('http://localhost:3000/api/auth/jwks')
+    );
+    const { payload } = await jwtVerify(token, JWKS)
+    // console.log(payload) ;
+    req.user = payload;
+    console.log(req.user)
+
+    next();
+  } catch (error) {
+    console.error('Token validation failed:', error)
+    return res.status(401).json({message: "Unauthorize"});
+  }
+
+    
+};
 
 async function run() {
   try {
@@ -28,12 +65,24 @@ async function run() {
     const facilityCollect = db.collection("facilities");
 
  app.get("/facilities",async(req, res)=> {
-    const cursor = facilityCollect.find();
+    const {search} = req.query;
+
+    let cursor;
+    if(search){
+       cursor = facilityCollect.find({ name : search})
+    }else{
+        cursor= facilityCollect.find();
+    }
+
     const result = await cursor.toArray();
+    // console.log(result,'this')
     res.send(result);
  })
 
- app.get("/facilities/:id",async(req, res)=> {
+ app.get("/facilities/:id",
+    logger,verifyToken,
+ async(req, res)=> {
+    // console.log(req.user, 'req')
     const {id} = req.params;
     // console.log(id)
     const query = { _id:id}
