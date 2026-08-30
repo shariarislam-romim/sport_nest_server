@@ -7,7 +7,7 @@ dotenv.config();
 const app = express();
 app.use(cors());
 app.use(express.json());
-const port = 5000
+const port = process.env.PORT || 5000
 
 const uri = process.env.MONGODB_URI;
 
@@ -25,7 +25,7 @@ const client = new MongoClient(uri, {
 });
 
 const logger = (req, res, next)=>{
-    console.log(req.params, 'logger');
+    // console.log(req.params, 'logger');
     next();
  };
 
@@ -59,7 +59,7 @@ const verifyToken = async (req, res, next)=>{
 async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
-    await client.connect();
+    // await client.connect();
     // Send a ping to confirm a successful connection
     // await client.db("admin").command({ ping: 1 });
     const db = client.db("Sport_nestdb")
@@ -85,7 +85,7 @@ async function run() {
 
 
    } catch (error) {
-        console.error(error);
+        // console.error(error);
    
 
      res.status(500).json({
@@ -147,32 +147,13 @@ async function run() {
     res.send(result);
  })
 
- const allBookings = await bookingCollect.find({}).toArray();
-
-console.log(
-    allBookings.map((booking) => ({
-        id: booking._id,
-        idAsString: booking._id.toString(),
-        facility: booking.facilityName
-    }))
-);
 
 app.delete("/booking/:id", verifyToken, async (req, res) => {
     
     try {
         const { id } = req.params;
 
-        console.log("DELETE ID:", id);
-
-        const allBookings = await bookingCollect.find({}).toArray();
-
-console.log(
-    allBookings.map((booking) => ({
-        id: booking._id,
-        idAsString: booking._id.toString(),
-        facility: booking.facilityName
-    }))
-);
+        // console.log("DELETE ID:", id);
 
         const booking = await bookingCollect.findOne({
             $expr: {
@@ -183,7 +164,7 @@ console.log(
             }
         });
 
-        console.log("FOUND BOOKING:", booking);
+        // console.log("FOUND BOOKING:", booking);
 
         if (!booking) {
             return res.status(404).json({
@@ -196,7 +177,7 @@ console.log(
             _id: booking._id
         });
 
-        console.log("DELETE RESULT:", deleteResult);
+        // console.log("DELETE RESULT:", deleteResult);
 
         if (deleteResult.deletedCount === 0) {
             return res.status(404).json({
@@ -224,7 +205,7 @@ console.log(
         });
 
     } catch (error) {
-        console.error("DELETE ERROR:", error);
+        // console.error("DELETE ERROR:", error);
 
         return res.status(500).json({
             success: false,
